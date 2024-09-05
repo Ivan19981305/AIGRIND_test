@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <random>
+#include <fstream>
 
 // Класс для представления самолета игрока
 class Player {
@@ -15,6 +16,12 @@ public:
     }
 
     void update(float dt) {
+        std::ofstream log_file;
+        log_file.open("log.txt", std::ios::app);
+        log_file << sf::Mouse::getPosition().y << ' ' << sprite.getPosition().y << ' ' << sf::Mouse::getPosition().y - sprite.getPosition().y << std::endl;
+        log_file.close();
+
+
         // Обновление позиции самолета с учетом инерции
         velocity += (sf::Mouse::getPosition().y - sprite.getPosition().y) * 0.01f;
         velocity *= 0.9f; 
@@ -42,13 +49,13 @@ public:
         shape.setSize(sf::Vector2f(5, 10));
         shape.setFillColor(sf::Color::Red);
         shape.setPosition(position);
-        velocityY = -500.f; // Начальная скорость снаряда
+        velocityY = -100.f; // Начальная скорость снаряда
     }
 
     void update(float dt) {
         // Обновление позиции снаряда с учетом гравитации
-        velocityY += 9.8f * dt; // Ускорение свободного падения
-        shape.move(200.f * dt, velocityY * dt); 
+        velocityY += 98.f * dt; // Ускорение свободного падения
+        shape.move(100.f * dt, velocityY * dt); 
     }
 };
 

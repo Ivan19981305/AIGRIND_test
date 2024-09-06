@@ -1,10 +1,11 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <random>
-#include <fstream>
 
 class Bumping; // объявление класса
+class Enemy;
 class Meteor;
+
 
 class Bumpable
 {
@@ -61,9 +62,14 @@ public:
         }
     }
 
-    void getBumpFrom(const Bumping &) override
+    void getBumpFrom(const Bumping &) override final
     {
-        isAlive = 0;
+        // от снарядов не помрёт
+    }
+
+    void getBumpFrom(const Enemy &)
+    {
+        isAlive = false;
     }
 };
 
@@ -130,6 +136,12 @@ public:
     {
         isAlive = false;
     }
+
+    virtual void bump(Player &player)
+    {
+        player.getBumpFrom(*this);
+    }
+
 
     virtual void run(const Bullet &, float)
     {
@@ -306,11 +318,32 @@ int main()
     {
         return EXIT_FAILURE;
     }
+     
+    sf::Font font;
+    if (!font.loadFromFile("arial.ttf")) 
+    {
+        return EXIT_FAILURE;
+    }
+
+    sf::Text scoreText;
+    scoreText.setFont(font);
+    scoreText.setCharacterSize(24); 
+    scoreText.setFillColor(sf::Color::White); 
+    scoreText.setPosition(10, 10);
+
+    sf::Text gameOverText;
+    gameOverText.setFont(font);
+    gameOverText.setString("Game Over"); 
+    gameOverText.setCharacterSize(72); 
+    gameOverText.setFillColor(sf::Color::Red); 
+    gameOverText.setPosition(100, 200); 
 
     // Создание объектов игры
     Player player(playerTexture);
     std::vector<Bullet> bullets;
     std::vector<std::unique_ptr<Enemy>> enemies;
+    int score = 0;
+    bool gameOver = false;
 
     // Основной цикл игры
     sf::Clock clock;
@@ -325,6 +358,24 @@ int main()
             {
                 // Создание нового снаряда при нажатии левой кнопки мыши
                 bullets.push_back(Bullet(player.sprite.getPosition() + sf::Vector2f(player.sprite.getGlobalBounds().width, 10)));
+            }
+        }
+
+        if (gameOver) {
+            // Ожидание нажатия на клавишу, чтобы перезапустить
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+                // Reset
+                score = 0;
+                gameOver = false;
+                enemies.clear(); 
+                player.isAlive = true;
+                player.sprite.setPosition(100, 200);
+            } else {
+                // Рисуем экран Game Over
+                window.clear();
+                window.draw(gameOverText);
+                window.display();
+                continue;
             }
         }
 
@@ -370,8 +421,24 @@ int main()
             }
 
         for (auto &enemy1 : enemies)
+        {
+            checkBump(*enemy1, player);
             for (auto &enemy2 : enemies)
                 checkBump(*enemy1, *enemy2);
+        }
+
+        if (!player.isAlive) {
+            gameOver = true;
+        } else {
+            // Подсчет очков при уничтожении врагов
+            for (auto& enemy : enemies) {
+                if (!enemy->isAlive) {
+                    score++;
+                }
+            }
+            // Обновление текста счета
+            scoreText.setString("Score: " + std::to_string(score)); 
+        }
 
         // Удаление снарядов и противников, вышедших за пределы экрана
         bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](const Bullet &b)
@@ -380,6 +447,7 @@ int main()
         enemies.erase(std::remove_if(enemies.begin(), enemies.end(), [](const std::unique_ptr<Enemy> &e)
                                      { return e->sprite.getPosition().x < -100 || !e->isAlive; }),
                       enemies.end());
+
 
         // Отрисовка
         window.clear();
@@ -392,7 +460,7 @@ int main()
         {
             window.draw(enemy->sprite);
         }
-        //window.draw(scoreText); // Отрисовка текста счета
+        window.draw(scoreText); // Отрисовка текста счета
         window.display();
     }
 

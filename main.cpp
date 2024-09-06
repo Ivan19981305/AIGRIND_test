@@ -57,6 +57,7 @@ public:
         }
         if (sprite.getPosition().y > 500)
         {
+            isAlive = false;
             sprite.setPosition(sprite.getPosition().x, 500);
             velocity = 0;
         }
@@ -158,7 +159,7 @@ public:
 
     Bird(sf::Texture &texture) : Enemy(texture)
     {
-        sprite.setPosition(800, rand() % 100 + 50); // Случайная начальная высота
+        sprite.setPosition(800, rand() % 100 + 400); // Случайная начальная высота
         sprite.setScale({50 / sprite.getGlobalBounds().width, 50 / sprite.getGlobalBounds().width});
         speed = 100.f;
         amplitude = 20.f;
@@ -191,9 +192,16 @@ class Bomber : public Enemy
 public:
     Bomber(sf::Texture &texture) : Enemy(texture)
     {
-        sprite.setPosition(800, rand() % 200 + 150); // Случайная начальная высота
+        if (rand() % 100 > 50){
+            sprite.setPosition(800, rand() % 150); // Случайная начальная высота
+            speed = 200; // высокая скорость
+        }
+        else
+        {
+            sprite.setPosition(800, 225 +  rand() % 150); // Случайная начальная высота
+            speed = 150; // средняя скорость
+        }
         sprite.setScale({150 / sprite.getGlobalBounds().width, 150 / sprite.getGlobalBounds().width});
-        speed = rand() % 50 + 100; // Случайная скорость
     }
 
     void update(float dt) override
@@ -208,9 +216,9 @@ class Fighter : public Enemy
 public:
     Fighter(sf::Texture &texture) : Enemy(texture)
     {
-        sprite.setPosition(800, rand() % 200 + 150); // Случайная начальная высота
+        sprite.setPosition(800, rand() % 600); // Случайная начальная высота
         sprite.setScale({100 / sprite.getGlobalBounds().width, 100 / sprite.getGlobalBounds().width});
-        speed = rand() % 100 + 150; // Случайная скорость
+        speed = 150 + rand() % 50; // Случайная скорость
     }
 
     void update(float dt) override
@@ -229,7 +237,7 @@ public:
         float speedFactor = 1.f + sqrt(pow(bulletDirection.x, 2) + pow(bulletDirection.y, 2)) * 0.01f; // Коэффициент для увеличения скорости
 
         // Двигаемся в противоположную от пули сторону
-        sprite.move(-speed * cos(angle) * speedFactor * dt * 0.2f, -speed * sin(angle) * speedFactor * dt * 0.2f);
+        sprite.move(-speed * cos(angle) * speedFactor * dt * 0.05f, -speed * sin(angle) * speedFactor * dt * 0.05f);
     }
 };
 
@@ -241,7 +249,7 @@ public:
 
     Meteor(sf::Texture &texture) : Enemy(texture)
     {
-        sprite.setPosition(rand() % 800, -100); // Случайная начальная позиция сверху экрана
+        sprite.setPosition(rand() % 600 + 200, -100); // Случайная начальная позиция сверху экрана
         sprite.setScale({30 / sprite.getGlobalBounds().width, 30 / sprite.getGlobalBounds().width});
         velocityX = rand() % 100 - 50; // Случайная скорость
         velocityY = 0;
@@ -264,26 +272,21 @@ public:
     }
 };
 
-bool checkDistance(const sf::Vector2f &object1, const sf::Vector2f &object2)
-{
-    return pow(object1.x - object2.x, 2) + pow(object1.y - object2.y, 2) < 10000;
-}
-
 void checkBump(Enemy &enemy1, Enemy &enemy2)
 {
-    if (checkDistance(enemy1.sprite.getPosition(), enemy2.sprite.getPosition()))
+    if (enemy1.sprite.getGlobalBounds().intersects(enemy2.sprite.getGlobalBounds()))
         enemy1.bump(enemy2);
 }
 
 void checkBump(Bullet &bullet, Enemy &enemy)
 {
-    if (checkDistance(bullet.shape.getPosition(), enemy.sprite.getPosition()))
+    if (bullet.shape.getGlobalBounds().intersects(enemy.sprite.getGlobalBounds()))
         bullet.bump(enemy);
 }
 
 void checkBump(Enemy &enemy, Player &player)
 {
-    if (checkDistance(enemy.sprite.getPosition(), player.sprite.getPosition()))
+    if (enemy.sprite.getGlobalBounds().intersects(player.sprite.getGlobalBounds()))
         enemy.bump(player);
 }
 
@@ -336,7 +339,7 @@ int main()
     gameOverText.setString("Game Over"); 
     gameOverText.setCharacterSize(72); 
     gameOverText.setFillColor(sf::Color::Red); 
-    gameOverText.setPosition(100, 200); 
+    gameOverText.setPosition(200, 200); 
 
     // Создание объектов игры
     Player player(playerTexture);

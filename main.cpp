@@ -4,25 +4,27 @@
 #include <fstream>
 
 // Класс для представления самолета игрока
-class Player {
+class Player{
 public:
     sf::Sprite sprite;
     float velocity;
+    bool isAlive;
 
     Player(sf::Texture& texture) {
         sprite.setTexture(texture);
         sprite.setPosition(100, 200);
         sprite.setScale({100 / sprite.getGlobalBounds().width, 100 / sprite.getGlobalBounds().width});
         velocity = 0;
+        isAlive = true;
     }
 
     void update(float dt, int windowPositionY) {
-        std::ofstream log_file;
-        log_file.open("log.txt", std::ios::app);
-        log_file << sf::Mouse::getPosition().y << ' ' << 
-                    sprite.getPosition().y << ' ' << 
-                    sf::Mouse::getPosition().y - sprite.getPosition().y << std::endl;
-        log_file.close();
+        // std::ofstream log_file;
+        // log_file.open("log.txt", std::ios::app);
+        // log_file << sf::Mouse::getPosition().y << ' ' << 
+        //             sprite.getPosition().y << ' ' << 
+        //             sf::Mouse::getPosition().y - sprite.getPosition().y << std::endl;
+        // log_file.close();
 
 
         // Обновление позиции самолета с учетом инерции
@@ -77,6 +79,7 @@ public:
     }
 
     virtual void update(float dt) = 0;
+
 };
 
 // Класс для птиц
@@ -97,6 +100,7 @@ public:
         // Движение птицы с колебаниями по высоте
         sprite.move(-speed * dt, amplitude * sin(frequency * sprite.getPosition().x * 0.01f) * dt);
     }
+
 };
 
 // Класс для бомбардировщиков
@@ -131,29 +135,58 @@ public:
 // Класс для метеоров
 class Meteor : public Enemy {
 public:
-    float velocityX;
+    float velocityX, velocityY;
 
     Meteor(sf::Texture& texture) : Enemy(texture) {
-        sprite.setPosition(rand() % 800, 0); // Случайная начальная позиция сверху экрана
-        sprite.setScale({70 / sprite.getGlobalBounds().width, 70 / sprite.getGlobalBounds().width});
-        velocityX = rand() % 150 + 50; // Случайная скорость 
-        std::ofstream log_file;
-        log_file.open("log.txt", std::ios::app);
-        log_file << sprite.getPosition().x << ' ' << 
-                    sprite.getPosition().y << std::endl;
-        log_file.close();
+        sprite.setPosition(rand() % 800, -100); // Случайная начальная позиция сверху экрана
+        sprite.setScale({30 / sprite.getGlobalBounds().width, 30 / sprite.getGlobalBounds().width});
+        velocityX = rand() % 100 - 50; // Случайная скорость 
+        velocityY = 0;
+
+        // std::ofstream log_file;
+        // log_file.open("log.txt", std::ios::app);
+        // log_file << sprite.getPosition().x << ' ' << 
+        //             sprite.getPosition().y << std::endl;
+        // log_file.close();
     }
 
     void update(float dt) override {
-        std::ofstream log_file;
-        log_file.open("log.txt", std::ios::app);
-        log_file << sprite.getPosition().x << ' ' << 
-                    sprite.getPosition().y << ' ' << 
-                    velocityX * dt << ' ' << 98.f * dt << std::endl;
-        log_file.close();
-        sprite.move(velocityX * dt, 98.f * dt * dt);
+        // std::ofstream log_file;
+        // log_file.open("log.txt", std::ios::app);
+        // log_file << sprite.getPosition().x << ' ' << 
+        //             sprite.getPosition().y << ' ' << 
+        //             velocityX * dt << ' ' << 98.f * dt << std::endl;
+        // log_file.close();
+        velocityY += 98.f * dt;
+        sprite.move(velocityX * dt, velocityY * dt);
     }
 };
+
+void checkBump(Meteor&, Bird&) {
+    // Ничего не делаем
+}
+
+void checkBump(Meteor& meteor, Enemy& enemy) {
+    if (std::pow(meteor.sprite.getPosition().x - enemy.sprite.getPosition().x, 2) + 
+        std::pow(meteor.sprite.getPosition().y - enemy.sprite.getPosition().y, 2) < 10000)
+    {   
+        meteor.isAlive = false;
+        enemy.isAlive = false;
+    }
+
+}
+
+void checkBump(Enemy&, Enemy&) {
+    // Ничего не делаем
+}
+
+void checkBump(Bullet& bullet, Enemy& enemy) {
+    if (std::pow(bullet.shape.getPosition().x - enemy.sprite.getPosition().x, 2) + 
+        std::pow(bullet.shape.getPosition().y - enemy.sprite.getPosition().y, 2) < 10000)
+    {
+        enemy.isAlive = false;
+    }
+}
 
 int main() {
     sf::RenderWindow window(sf::VideoMode(800, 600), "2D Scroller");
@@ -213,7 +246,7 @@ int main() {
         // Создание новых противников 
         if (rand() % 100 < 5) { // Вероятность появления нового противника
             int enemyType = rand() % 3;
-            if (rand() % 10 < 9)
+            if (rand() % 10 < 2)
                 enemies.push_back(std::make_unique<Meteor>(meteorTexture));
             else if (enemyType == 0) {
                 enemies.push_back(std::make_unique<Bird>(birdTexture));
@@ -228,11 +261,11 @@ int main() {
         // Проверка столкновений (TODO: Реализовать)
         for(auto bullet: bullets)
             for(auto& enemy : enemies)
-                if (std::pow(bullet.shape.getPosition().x - enemy->sprite.getPosition().x, 2) + 
-                    std::pow(bullet.shape.getPosition().y - enemy->sprite.getPosition().y, 2) < 10000)
-                {
-                    enemy->isAlive = false;
-                }
+                checkBump(bullet, *enemy);
+
+        for(auto& enemy1 : enemies)
+            for(auto& enemy2 : enemies)
+                checkBump(*enemy1, *enemy2);
 
         // Удаление снарядов и противников, вышедших за пределы экрана
         bullets.erase(std::remove_if(bullets.begin(), bullets.end(), [](const Bullet& b) {

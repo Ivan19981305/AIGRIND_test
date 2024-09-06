@@ -3,8 +3,23 @@
 #include <random>
 #include <fstream>
 
+class Bumping; // объявление класса
+class Meteor;
+
+class Bumpable{
+public:
+    virtual void getBumpFrom(const Bumping&) = 0;
+};
+
+class Bumping{
+public:
+    virtual void bump(Bumpable& object) {
+        object.getBumpFrom(*this);
+    }
+};
+
 // Класс для представления самолета игрока
-class Player{
+class Player : public Bumpable{
 public:
     sf::Sprite sprite;
     float velocity;
@@ -19,20 +34,13 @@ public:
     }
 
     void update(float dt, int windowPositionY) {
-        // std::ofstream log_file;
-        // log_file.open("log.txt", std::ios::app);
-        // log_file << sf::Mouse::getPosition().y << ' ' << 
-        //             sprite.getPosition().y << ' ' << 
-        //             sf::Mouse::getPosition().y - sprite.getPosition().y << std::endl;
-        // log_file.close();
-
 
         // Обновление позиции самолета с учетом инерции
-        velocity += (sf::Mouse::getPosition().y - sprite.getPosition().y) * 0.01f;
+        velocity += (sf::Mouse::getPosition().y - windowPositionY - sprite.getPosition().y) * 0.05f;
         velocity *= 0.9f; 
         sprite.move(0, velocity * dt);
 
-        sprite.setPosition(sprite.getPosition().x, sf::Mouse::getPosition().y - windowPositionY);
+        //sprite.setPosition(sprite.getPosition().x, sf::Mouse::getPosition().y - windowPositionY);
 
         // Ограничение движения самолета по вертикали
         if (sprite.getPosition().y < 0) {
@@ -44,10 +52,15 @@ public:
             velocity = 0;
         }
     }
+
+    void getBumpFrom(const Bumping&) override
+    {
+        isAlive = 0;
+    }
 };
 
 // Класс для представления снарядов
-class Bullet {
+class Bullet : public Bumping {
 public:
     sf::RectangleShape shape;
     float velocityY;
@@ -67,7 +80,7 @@ public:
 };
 
 // Базовый класс для противников
-class Enemy {
+class Enemy: public Bumping, public Bumpable {
 public:
     sf::Sprite sprite;
     float speed;
@@ -80,10 +93,33 @@ public:
 
     virtual void update(float dt) = 0;
 
+    virtual void bump(Bumpable & object) override{
+        object.getBumpFrom(*this);
+    }
+
+    virtual void bump(Enemy& enemy){
+        enemy.getBumpFrom(*this);
+    }
+
+    virtual void getBumpFrom(const Bumping&) override{
+        isAlive = false;
+    }
+
+    virtual void getBumpFrom(const Enemy&){
+        //чтобы не отлетали друг от друга
+    }
+
+    virtual void getBumpFrom(const Meteor&){
+        isAlive = false;
+    }
+
+    virtual void run(const Bullet&, float) {
+        //по умолчанию бездействуем
+    }
 };
 
 // Класс для птиц
-class Bird : public Enemy {
+class Bird : public Enemy{
 public:
     float amplitude;
     float frequency;
@@ -99,6 +135,16 @@ public:
     void update(float dt) override {
         // Движение птицы с колебаниями по высоте
         sprite.move(-speed * dt, amplitude * sin(frequency * sprite.getPosition().x * 0.01f) * dt);
+    }
+
+    void getBumpFrom(const Bumping&) override final{
+        // Птицы неубиваемы
+    }
+    void getBumpFrom(const Enemy&) override final{
+        // Даже от самолётов
+    }
+    void getBumpFrom(const Meteor&) override final{
+        // Даже от метеоров
     }
 
 };
@@ -130,6 +176,10 @@ public:
         // TODO: Реализовать уклонение от снарядов
         sprite.move(-speed * dt, 0); 
     }
+
+    void run(const Bullet& bullet, float dt) override final {
+        sprite.move((sprite.getPosition().x - bullet.shape.getPosition().x) * 0.05f * dt, (sprite.getPosition().x - bullet.shape.getPosition().x) * 0.05f * dt); 
+    }
 };
 
 // Класс для метеоров
@@ -160,32 +210,34 @@ public:
         velocityY += 98.f * dt;
         sprite.move(velocityX * dt, velocityY * dt);
     }
-};
 
-void checkBump(Meteor&, Bird&) {
-    // Ничего не делаем
-}
-
-void checkBump(Meteor& meteor, Enemy& enemy) {
-    if (std::pow(meteor.sprite.getPosition().x - enemy.sprite.getPosition().x, 2) + 
-        std::pow(meteor.sprite.getPosition().y - enemy.sprite.getPosition().y, 2) < 10000)
-    {   
-        meteor.isAlive = false;
-        enemy.isAlive = false;
+    void getBumpFrom(const Meteor&) override final{
+        //Против самострела
     }
 
+    void bump(Enemy & enemy) override final{
+        enemy.getBumpFrom(*this);
+    }
+};
+
+bool checkDistance(const sf::Vector2f & object1, const sf::Vector2f & object2)
+{
+    return pow(object1.x - object2.x, 2) + pow(object1.y - object2.y, 2) < 10000;
 }
 
-void checkBump(Enemy&, Enemy&) {
-    // Ничего не делаем
+void checkBump(Enemy& enemy1, Enemy& enemy2) {
+    if (checkDistance(enemy1.sprite.getPosition(), enemy2.sprite.getPosition()))
+        enemy1.bump(enemy2);
 }
 
 void checkBump(Bullet& bullet, Enemy& enemy) {
-    if (std::pow(bullet.shape.getPosition().x - enemy.sprite.getPosition().x, 2) + 
-        std::pow(bullet.shape.getPosition().y - enemy.sprite.getPosition().y, 2) < 10000)
-    {
-        enemy.isAlive = false;
-    }
+    if (checkDistance(bullet.shape.getPosition(), enemy.sprite.getPosition()))
+        bullet.bump(enemy);
+}
+
+void checkBump(Enemy& enemy, Player& player) {
+    if (checkDistance(enemy.sprite.getPosition(), player.sprite.getPosition()))
+        enemy.bump(player);
 }
 
 int main() {
@@ -261,7 +313,10 @@ int main() {
         // Проверка столкновений (TODO: Реализовать)
         for(auto bullet: bullets)
             for(auto& enemy : enemies)
+            {
+                enemy->run(bullet, dt);
                 checkBump(bullet, *enemy);
+            }
 
         for(auto& enemy1 : enemies)
             for(auto& enemy2 : enemies)
@@ -272,7 +327,7 @@ int main() {
             return b.shape.getPosition().y > 600;
         }), bullets.end());
         enemies.erase(std::remove_if(enemies.begin(), enemies.end(), [](const std::unique_ptr<Enemy>& e) {
-            return e->sprite.getPosition().x < 0 || !e->isAlive;
+            return e->sprite.getPosition().x < -100 || !e->isAlive;
         }), enemies.end());
 
 

@@ -1,4 +1,7 @@
 // Bullet.h
+#ifndef BULLET_H
+#define BULLET_H
+
 #include <SFML/Graphics.hpp>
 #include "Bumping.h"
 
@@ -9,6 +12,7 @@ public:
     float velocityY;
 
     Bullet(sf::Vector2f position);
-
     void update(float dt);
 };
+
+#endif // BULLET_H

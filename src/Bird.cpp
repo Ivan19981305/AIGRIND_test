@@ -1,9 +1,9 @@
 // Bird.cpp
 #include "Bird.h"
-#include <SFML/Graphics.hpp>
-#include <random>
+#include <cstdlib>
+#include <cmath>
 
-Bird::Bird(sf::Texture& texture) : Enemy(texture)
+Bird::Bird(sf::Texture &texture) : Enemy(texture)
 {
     sprite.setPosition(800, rand() % 100 + 400); // Случайная начальная высота
     sprite.setScale({50 / sprite.getGlobalBounds().width, 50 / sprite.getGlobalBounds().width});
@@ -14,18 +14,20 @@ Bird::Bird(sf::Texture& texture) : Enemy(texture)
 
 void Bird::update(float dt)
 {
+    // Движение птицы с колебаниями по высоте
     sprite.move(-speed * dt, amplitude * sin(frequency * sprite.getPosition().x * 0.01f) * dt);
 }
 
-void Bird::getBumpFrom(const Bumping& ) override final
+void Bird::getBumpFrom(const Bumping &)
 {
     // Птицы неубиваемы
 }
-void Bird::getBumpFrom(const Enemy& ) override final
+void Bird::getBumpFrom(const Enemy &)
 {
     // Даже от самолётов
 }
-void Bird::getBumpFrom(const Meteor& ) override final
+
+void Bird::getBumpFrom(const Meteor &)
 {
     // Даже от метеоров
 }

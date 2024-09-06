@@ -1,40 +1,40 @@
 // Enemy.cpp
 #include "Enemy.h"
-#include <SFML/Graphics.hpp>
-#include <random>
+#include "Player.h"
+#include "Meteor.h"
 
-Enemy::Enemy(sf::Texture& texture)
+Enemy::Enemy(sf::Texture &texture)
 {
     sprite.setTexture(texture);
     isAlive = true;
 }
 
-void Enemy::bump(Bumpable& object) override
+void Enemy::bump(Bumpable &object)
 {
     object.getBumpFrom(*this);
 }
 
-void Enemy::bump(Enemy& enemy)
+void Enemy::bump(Enemy &enemy)
 {
     enemy.getBumpFrom(*this);
 }
 
-void Enemy::getBumpFrom(const Bumping& ) override
+void Enemy::getBumpFrom(const Bumping &)
 {
     isAlive = false;
 }
 
-void Enemy::getBumpFrom(const Enemy& )
+void Enemy::getBumpFrom(const Enemy &)
 {
     // чтобы не отлетали друг от друга
 }
 
-void Enemy::getBumpFrom(const Meteor& )
+void Enemy::getBumpFrom(const Meteor &)
 {
     isAlive = false;
 }
 
-void Enemy::bump(Player& player)
+void Enemy::bump(Player &player)
 {
     player.getBumpFrom(*this);
 }

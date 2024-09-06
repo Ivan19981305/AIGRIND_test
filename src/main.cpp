@@ -3,6 +3,8 @@
 #include <vector>
 #include <random>
 #include <memory>
+#include <algorithm>
+
 #include "Player.h"
 #include "Bullet.h"
 #include "Enemy.h"
@@ -11,9 +13,24 @@
 #include "Fighter.h"
 #include "Meteor.h"
 
-void checkBump(Enemy& enemy1, Enemy& enemy2);
-void checkBump(Bullet& bullet, Enemy& enemy);
-void checkBump(Enemy& enemy, Player& player);
+
+void checkBump(Enemy &enemy1, Enemy &enemy2)
+{
+    if (enemy1.sprite.getGlobalBounds().intersects(enemy2.sprite.getGlobalBounds()))
+        enemy1.bump(enemy2);
+}
+
+void checkBump(Bullet &bullet, Enemy &enemy)
+{
+    if (bullet.shape.getGlobalBounds().intersects(enemy.sprite.getGlobalBounds()))
+        bullet.bump(enemy);
+}
+
+void checkBump(Enemy &enemy, Player &player)
+{
+    if (enemy.sprite.getGlobalBounds().intersects(player.sprite.getGlobalBounds()))
+        enemy.bump(player);
+}
 
 int main()
 {
@@ -46,25 +63,25 @@ int main()
     {
         return EXIT_FAILURE;
     }
-     
+
     sf::Font font;
-    if (!font.loadFromFile("arial.ttf")) 
+    if (!font.loadFromFile("arial.ttf"))
     {
         return EXIT_FAILURE;
     }
 
     sf::Text scoreText;
     scoreText.setFont(font);
-    scoreText.setCharacterSize(24); 
-    scoreText.setFillColor(sf::Color::White); 
+    scoreText.setCharacterSize(24);
+    scoreText.setFillColor(sf::Color::White);
     scoreText.setPosition(10, 10);
 
     sf::Text gameOverText;
     gameOverText.setFont(font);
-    gameOverText.setString("Game Over"); 
-    gameOverText.setCharacterSize(72); 
-    gameOverText.setFillColor(sf::Color::Red); 
-    gameOverText.setPosition(200, 200); 
+    gameOverText.setString("Game Over");
+    gameOverText.setCharacterSize(72);
+    gameOverText.setFillColor(sf::Color::Red);
+    gameOverText.setPosition(200, 200);
 
     // Создание объектов игры
     Player player(playerTexture);
@@ -89,16 +106,20 @@ int main()
             }
         }
 
-        if (gameOver) {
+        if (gameOver)
+        {
             // Ожидание нажатия на клавишу, чтобы перезапустить
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+            {
                 // Reset
                 score = 0;
                 gameOver = false;
-                enemies.clear(); 
+                enemies.clear();
                 player.isAlive = true;
                 player.sprite.setPosition(100, 200);
-            } else {
+            }
+            else
+            {
                 // Рисуем экран Game Over
                 window.clear();
                 window.draw(gameOverText);
@@ -155,17 +176,22 @@ int main()
                 checkBump(*enemy1, *enemy2);
         }
 
-        if (!player.isAlive) {
+        if (!player.isAlive)
+        {
             gameOver = true;
-        } else {
+        }
+        else
+        {
             // Подсчет очков при уничтожении врагов
-            for (auto& enemy : enemies) {
-                if (!enemy->isAlive) {
+            for (auto &enemy : enemies)
+            {
+                if (!enemy->isAlive)
+                {
                     score++;
                 }
             }
             // Обновление текста счета
-            scoreText.setString("Score: " + std::to_string(score)); 
+            scoreText.setString("Score: " + std::to_string(score));
         }
 
         // Удаление снарядов и противников, вышедших за пределы экрана
@@ -175,7 +201,6 @@ int main()
         enemies.erase(std::remove_if(enemies.begin(), enemies.end(), [](const std::unique_ptr<Enemy> &e)
                                      { return e->sprite.getPosition().x < -100 || !e->isAlive; }),
                       enemies.end());
-
 
         // Отрисовка
         window.clear();
@@ -193,22 +218,4 @@ int main()
     }
 
     return 0;
-}
-
-void checkBump(Enemy& enemy1, Enemy& enemy2)
-{
-    if (enemy1.sprite.getGlobalBounds().intersects(enemy2.sprite.getGlobalBounds()))
-        enemy1.bump(enemy2);
-}
-
-void checkBump(Bullet& bullet, Enemy& enemy)
-{
-    if (bullet.shape.getGlobalBounds().intersects(enemy.sprite.getGlobalBounds()))
-        bullet.bump(enemy);
-}
-
-void checkBump(Enemy& enemy, Player& player)
-{
-    if (enemy.sprite.getGlobalBounds().intersects(player.sprite.getGlobalBounds()))
-        enemy.bump(player);
 }

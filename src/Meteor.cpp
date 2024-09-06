@@ -1,9 +1,9 @@
 // Meteor.cpp
 #include "Meteor.h"
-#include <SFML/Graphics.hpp>
-#include <random>
+#include <cstdlib>
 
-Meteor::Meteor(sf::Texture& texture) : Enemy(texture)
+
+Meteor::Meteor(sf::Texture &texture) : Enemy(texture)
 {
     sprite.setPosition(rand() % 600 + 200, -100); // Случайная начальная позиция сверху экрана
     sprite.setScale({30 / sprite.getGlobalBounds().width, 30 / sprite.getGlobalBounds().width});
@@ -17,12 +17,12 @@ void Meteor::update(float dt)
     sprite.move(velocityX * dt, velocityY * dt);
 }
 
-void Meteor::getBumpFrom(const Meteor& ) override final
+void Meteor::getBumpFrom(const Meteor &)
 {
     // Против самострела
 }
 
-void Meteor::bump(Enemy& enemy) override final
+void Meteor::bump(Enemy &enemy)
 {
     enemy.getBumpFrom(*this);
 }

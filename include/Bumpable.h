@@ -1,13 +1,13 @@
 // Bumpable.h
-#include <SFML/Graphics.hpp>
-#include "Bumping.h"
-#include "Enemy.h"
-#include "Meteor.h"
+#ifndef BUMPABLE_H
+#define BUMPABLE_H
+
+class Bumping; // объявление класса
 
 class Bumpable
 {
 public:
-    virtual void getBumpFrom(const Bumping&) = 0;
-    virtual void getBumpFrom(const Enemy&) = 0;
-    virtual void getBumpFrom(const Meteor&) = 0;
+    virtual void getBumpFrom(const Bumping &) = 0;
 };
+
+#endif // BUMPABLE_H
